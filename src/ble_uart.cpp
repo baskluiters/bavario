@@ -20,6 +20,9 @@ NimBLECharacteristic* pTxCharacteristic = NULL;
 NimBLECharacteristic* pRxCharacteristic = NULL;
 
 static uint8_t ble_uart_nmea_checksum(const char *szNMEA);
+#ifdef AUX_SERIAL
+static HardwareSerial auxSerial(portAux);
+#endif
 
 void ble_uart_init() {
 	NimBLEDevice::init("Bavario");
@@ -44,6 +47,11 @@ void ble_uart_init() {
 
 	pService->start();
 	pBLEServer->getAdvertising()->start();
+#ifdef AUX_SERIAL
+	auxSerial.begin(115200, SERIAL_8N1, -1, pinAuxTx);
+	while(!auxSerial)
+		delay(100);
+#endif
 }
 
 
@@ -61,8 +69,15 @@ void ble_uart_transmit(const char *msg) {
 #ifdef BLE_DEBUG	
     dbg_printf(("bleTX: %s", msg)); 
 #endif
-	pTxCharacteristic->setValue((const uint8_t*)msg, strlen(msg));
-	pTxCharacteristic->notify();   
+#ifdef AUX_SERIAL
+	auxSerial.write(msg);
+#endif
+	const int maxPacketSize = 20;
+	for(int length = strlen(msg); length > 0; length -= maxPacketSize) {
+		pTxCharacteristic->setValue((const uint8_t*)msg, MIN(maxPacketSize, strlen(msg)));
+		pTxCharacteristic->notify();   
+		msg += maxPacketSize;
+	}
 }
 
 void ble_uart_transmit_LK8EX1(int32_t altm, int32_t cps, float batPercentage) {
