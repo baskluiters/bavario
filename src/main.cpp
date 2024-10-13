@@ -70,10 +70,10 @@ static void IRAM_ATTR drdy_interrupt_handler() {
 
 
 void setup() {
-	pinMode(pinPCCA, INPUT_PULLUP); //  Program/Configure/Calibrate/Audio Mute Button
 	pinMode(pinLED, OUTPUT_OPEN_DRAIN); // power/bluetooth LED, active low
 	LED_OFF();
 	audio_init();
+	ui_button_init();	
 
 	wifi_off(); // turn off radio to save power
 
@@ -111,25 +111,25 @@ void setup() {
 	for (int cnt = 0; cnt < 6; cnt++) {
 		dbg_println((8-cnt));
 		delay(500);
-		if (digitalRead(pinPCCA) == 0) {
+		if( ui_button_pressed() ) {
 			bWebConfigure = true;
 			break;
 			}
 		}
 
- setCpuFrequencyMhz(80);
-  uint32_t Freq = getCpuFrequencyMhz();
-  Serial.print("CPU Freq = ");
-  Serial.print(Freq);
-  Serial.println(" MHz");
-  Freq = getXtalFrequencyMhz();
-  Serial.print("XTAL Freq = ");
-  Serial.print(Freq);
-  Serial.println(" MHz");
-  Freq = getApbFrequency();
-  Serial.print("APB Freq = ");
-  Serial.print(Freq);
-  Serial.println(" Hz");		
+	setCpuFrequencyMhz(80);
+	uint32_t Freq = getCpuFrequencyMhz();
+	Serial.print("CPU Freq = ");
+	Serial.print(Freq);
+	Serial.println(" MHz");
+	Freq = getXtalFrequencyMhz();
+	Serial.print("XTAL Freq = ");
+	Serial.print(Freq);
+	Serial.println(" MHz");
+	Freq = getApbFrequency();
+	Serial.print("APB Freq = ");
+	Serial.print(Freq);
+	Serial.println(" Hz");		
    	
 #ifdef PWR_CTRL
 	xTaskCreate( pwr_ctrl_task, "pwr_ctrl_task", 1024, NULL, PWR_CTRL_TASK_PRIORITY, NULL );
@@ -328,7 +328,6 @@ static void vario_task(void * pvParameter) {
 
 	timeNowUs = timePreviousUs = micros();
 	ringbuf_init(); 
-	ui_btn_init();	
 	// interrupt output of MPU9250 is configured as push-pull, active high pulse. This is connected to
 	// pinDRDYInt which has an external 10K pull-down resistor
 	pinMode(pinDRDYInt, INPUT_PULLDOWN); 
@@ -418,12 +417,10 @@ static void vario_task(void * pvParameter) {
 							kfAltitudeCm, Baro.altitudeCm, kfClimbrateCps, zAccelAverage));
 #endif
 			}
+			if( ui_button_pressed() )
+				audio_toggle_mute();
 		}
 			
-		if (BtnPCCAPressed) {
-			BtnPCCAPressed = false;
-			audio_toggle_mute();
-			}	
 		uint32_t elapsedUs =  micros() - marker; // calculate time  taken to read and process the data, must be less than 2mS
 		if (drdyCounter >= 500) {
 			drdyCounter = 0; // 1 second elapsed
