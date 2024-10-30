@@ -23,7 +23,7 @@
 #else
 #define pinPCCA		6	// program/configure/calibrate/audio button
 #define pinAudio	7	// pwm beeper audio output
-#define pinAudioEn	5	// 74HC240 output enables, active low
+#define pinAudioEn	0	// 74HC240 output enables, active low
 
 #define pinPwrSens	12	// detect power on/off button press
 #define pinPwrCtrl	13	// power on/off
@@ -33,7 +33,7 @@
 #define pinNCS		3 	// NCS (mpu9250)
 #define pinMOSI		10 	// SDA
 #define pinSCK		8	// SCL
-#define pinDRDYInt	2  	// INT
+#define pinDRDYInt	5  	// INT
 #define pinLED		1	// power-on and bluetooth active indication
 #define pinGpsRx 	20
 #define pinAuxTx	21
