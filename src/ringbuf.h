@@ -7,6 +7,7 @@ class RingBuffer {
 private:
     int head;
     float buffer[RINGBUF_SIZE];
+    float calculateAverage(int startIdx, int numSamples) const;
 
 public:
     RingBuffer();  // Constructor
