@@ -413,8 +413,8 @@ static void vario_task(void * pvParameter) {
 				}   
 #endif
 #ifdef ALTI_DEBUG
-				dbg_printf(("/* %.0f, %.0f, %.0f, %.0f */\n", 
-							kfAltitudeCm, Baro.altitudeCm, kfClimbrateCps, zAccelAverage));
+				dbg_printf(("/* %.0f, %.0f, %.0f, %.0f, %.0f */\n", 
+							kfAltitudeCm, Baro.altitudeCm, kfClimbrateCps, zAccelAverage, adc_get_battery_percentage()));
 #endif
 			}
 			if( ui_button_pressed() )
