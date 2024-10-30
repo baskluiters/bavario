@@ -327,7 +327,7 @@ static void vario_task(void * pvParameter) {
 	// }
 
 	timeNowUs = timePreviousUs = micros();
-	ringbuf_init(); 
+	RingBuffer ringBuffer;
 	// interrupt output of MPU9250 is configured as push-pull, active high pulse. This is connected to
 	// pinDRDYInt which has an external 10K pull-down resistor
 	pinMode(pinDRDYInt, INPUT_PULLDOWN); 
@@ -382,7 +382,7 @@ static void vario_task(void * pvParameter) {
 		imu_mahonyAHRS_update6DOF(bUseAccel, dtIMU, gn, ge, gd, an, ae, ad);
 #endif		
 		float gCompensatedAccel = imu_gravity_compensated_accel(an, ae, ad, Q0, Q1, Q2, Q3);
-		ringbuf_add_sample(gCompensatedAccel);  
+		ringBuffer.addSample(gCompensatedAccel);
 		baroCounter++;
 		kfTimeDeltaUSecs += imuTimeDeltaUSecs;
 		if (baroCounter >= 5) { // 5*2mS = 10mS elapsed, this is the sampling period for MS5611, 
@@ -392,7 +392,7 @@ static void vario_task(void * pvParameter) {
 			if ( zMeasurementAvailable ) { 
 				// average earth-z acceleration over the 20mS interval between z samples
 				// is used in the kf algorithm update phase
-				float zAccelAverage = ringbuf_average_newest_samples(10); 
+				float zAccelAverage = ringBuffer.averageNewestSamples(10);
 				float dtKF = kfTimeDeltaUSecs/1000000.0f;
 				kalmanFilter4d_predict(dtKF);
 				kalmanFilter4d_update(Baro.altitudeCm, zAccelAverage, (float*)&kfAltitudeCm, (float*)&kfClimbrateCps);
@@ -433,7 +433,7 @@ static void vario_task(void * pvParameter) {
 			// Yaw is positive for clockwise rotation about the NED frame +Z axis
 			// If magnetometer isn't used, yaw is initialized to 0 on power up.
 			dbg_printf(("\nY = %d P = %d R = %d\n", (int)yaw, (int)pitch, (int)roll));
-			dbg_printf(("Alt %.0f [cm], BaroAlt = %.0f [cm], Accel: %.0f\n", kfAltitudeCm, Baro.altitudeCm, ringbuf_average_newest_samples(10)));
+			dbg_printf(("Alt %.0f [cm], BaroAlt = %.0f [cm], Accel: %.0f\n", kfAltitudeCm, Baro.altitudeCm, ringBuffer.averageNewestSamples(10)));
 			dbg_printf(("kv = %d [cm/s], timeout_counter = %d\n", ClimbrateCps, pwrOffTimeoutSecs));
 			dbg_printf(("ax = %.1f ay = %.1f az = %.1f\n", accelmG[0], accelmG[1], accelmG[2]));
 			dbg_printf(("gx = %.1f gy = %.1f gz = %.1f\n", gyroDps[0], gyroDps[1], gyroDps[2]));

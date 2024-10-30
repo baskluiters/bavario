@@ -1,40 +1,38 @@
-#include <Arduino.h>
 #include "ringbuf.h"
 
-static const char* TAG = "ringbuf";
+RingBuffer::RingBuffer() : head(0) {
+    for (int i = 0; i < RINGBUF_SIZE; i++) {
+        buffer[i] = 0.0f;
+    }
+}
 
-static RINGBUF RingBuf;
+void RingBuffer::addSample(float sample) {
+    buffer[head] = sample;
+    head = (head + 1) % RINGBUF_SIZE;
+}
 
-void ringbuf_init() {
-   memset(RingBuf.buffer,0,RINGBUF_SIZE);
-   RingBuf.head = RINGBUF_SIZE-1;
-   }
+float RingBuffer::averageOldestSamples(int numSamples) const {
+    if (numSamples <= 0 || numSamples > RINGBUF_SIZE) return 0.0f;
+    
+    float sum = 0.0f;
+    int startIdx = head;
+    
+    for (int i = 0; i < numSamples; i++) {
+        sum += buffer[(startIdx + i) % RINGBUF_SIZE];
+    }
+    
+    return sum / numSamples;
+}
 
-void ringbuf_add_sample(float sample) {
-   RingBuf.head++;
-   if (RingBuf.head >= RINGBUF_SIZE) RingBuf.head = 0;
-   RingBuf.buffer[RingBuf.head] = sample;
-   }
-
-
-float ringbuf_average_oldest_samples(int numSamples) {
-   int index = RingBuf.head+1; // oldest Sample
-   float accum = 0.0f;
-   for (int count = 0; count < numSamples; count++) {
-      if (index >= RINGBUF_SIZE) index = 0;
-      accum += RingBuf.buffer[index];
-      index++;
-      }
-   return accum/numSamples;
-   }   
-
-float ringbuf_average_newest_samples(int numSamples) {
-   int index = RingBuf.head; // newest Sample
-   float accum = 0.0f;
-   for (int count = 0; count < numSamples; count++) {
-      if (index < 0) index = RINGBUF_SIZE - 1;
-      accum += RingBuf.buffer[index];
-      index--;
-      }
-   return accum/numSamples;
-   }   
+float RingBuffer::averageNewestSamples(int numSamples) const {
+    if (numSamples <= 0 || numSamples > RINGBUF_SIZE) return 0.0f;
+    
+    float sum = 0.0f;
+    int startIdx = (head - numSamples + RINGBUF_SIZE) % RINGBUF_SIZE;
+    
+    for (int i = 0; i < numSamples; i++) {
+        sum += buffer[(startIdx + i) % RINGBUF_SIZE];
+    }
+    
+    return sum / numSamples;
+}
