@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"type": "PlatformIO",
-			"task": "Clean All (esp32c3)",
+			"task": "Clean",
 			"problemMatcher": [
 				"$platformio"
 			],
