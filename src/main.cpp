@@ -70,10 +70,10 @@ static void IRAM_ATTR drdy_interrupt_handler() {
 
 
 void setup() {
-	pinMode(pinPCCA, INPUT_PULLUP); //  Program/Configure/Calibrate/Audio Mute Button
 	pinMode(pinLED, OUTPUT_OPEN_DRAIN); // power/bluetooth LED, active low
 	LED_OFF();
 	audio_init();
+	ui_button_init();	
 
 	wifi_off(); // turn off radio to save power
 
@@ -111,25 +111,25 @@ void setup() {
 	for (int cnt = 0; cnt < 6; cnt++) {
 		dbg_println((8-cnt));
 		delay(500);
-		if (digitalRead(pinPCCA) == 0) {
+		if( ui_button_pressed() ) {
 			bWebConfigure = true;
 			break;
 			}
 		}
 
- setCpuFrequencyMhz(80);
-  uint32_t Freq = getCpuFrequencyMhz();
-  Serial.print("CPU Freq = ");
-  Serial.print(Freq);
-  Serial.println(" MHz");
-  Freq = getXtalFrequencyMhz();
-  Serial.print("XTAL Freq = ");
-  Serial.print(Freq);
-  Serial.println(" MHz");
-  Freq = getApbFrequency();
-  Serial.print("APB Freq = ");
-  Serial.print(Freq);
-  Serial.println(" Hz");		
+	setCpuFrequencyMhz(80);
+	uint32_t Freq = getCpuFrequencyMhz();
+	Serial.print("CPU Freq = ");
+	Serial.print(Freq);
+	Serial.println(" MHz");
+	Freq = getXtalFrequencyMhz();
+	Serial.print("XTAL Freq = ");
+	Serial.print(Freq);
+	Serial.println(" MHz");
+	Freq = getApbFrequency();
+	Serial.print("APB Freq = ");
+	Serial.print(Freq);
+	Serial.println(" Hz");		
    	
 #ifdef PWR_CTRL
 	xTaskCreate( pwr_ctrl_task, "pwr_ctrl_task", 1024, NULL, PWR_CTRL_TASK_PRIORITY, NULL );
@@ -327,8 +327,7 @@ static void vario_task(void * pvParameter) {
 	// }
 
 	timeNowUs = timePreviousUs = micros();
-	ringbuf_init(); 
-	ui_btn_init();	
+	RingBuffer ringBuffer;
 	// interrupt output of MPU9250 is configured as push-pull, active high pulse. This is connected to
 	// pinDRDYInt which has an external 10K pull-down resistor
 	pinMode(pinDRDYInt, INPUT_PULLDOWN); 
@@ -383,7 +382,7 @@ static void vario_task(void * pvParameter) {
 		imu_mahonyAHRS_update6DOF(bUseAccel, dtIMU, gn, ge, gd, an, ae, ad);
 #endif		
 		float gCompensatedAccel = imu_gravity_compensated_accel(an, ae, ad, Q0, Q1, Q2, Q3);
-		ringbuf_add_sample(gCompensatedAccel);  
+		ringBuffer.addSample(gCompensatedAccel);
 		baroCounter++;
 		kfTimeDeltaUSecs += imuTimeDeltaUSecs;
 		if (baroCounter >= 5) { // 5*2mS = 10mS elapsed, this is the sampling period for MS5611, 
@@ -393,7 +392,7 @@ static void vario_task(void * pvParameter) {
 			if ( zMeasurementAvailable ) { 
 				// average earth-z acceleration over the 20mS interval between z samples
 				// is used in the kf algorithm update phase
-				float zAccelAverage = ringbuf_average_newest_samples(10); 
+				float zAccelAverage = ringBuffer.averageNewestSamples(10);
 				float dtKF = kfTimeDeltaUSecs/1000000.0f;
 				kalmanFilter4d_predict(dtKF);
 				kalmanFilter4d_update(Baro.altitudeCm, zAccelAverage, (float*)&kfAltitudeCm, (float*)&kfClimbrateCps);
@@ -414,16 +413,14 @@ static void vario_task(void * pvParameter) {
 				}   
 #endif
 #ifdef ALTI_DEBUG
-				dbg_printf(("/* %.0f, %.0f, %.0f, %.0f */\n", 
-							kfAltitudeCm, Baro.altitudeCm, kfClimbrateCps, zAccelAverage));
+				dbg_printf(("/* %.0f, %.0f, %.0f, %.0f, %.0f */\n", 
+							kfAltitudeCm, Baro.altitudeCm, kfClimbrateCps, zAccelAverage, adc_get_battery_percentage()));
 #endif
 			}
+			if( ui_button_pressed() )
+				audio_toggle_mute();
 		}
 			
-		if (BtnPCCAPressed) {
-			BtnPCCAPressed = false;
-			audio_toggle_mute();
-			}	
 		uint32_t elapsedUs =  micros() - marker; // calculate time  taken to read and process the data, must be less than 2mS
 		if (drdyCounter >= 500) {
 			drdyCounter = 0; // 1 second elapsed
@@ -436,7 +433,7 @@ static void vario_task(void * pvParameter) {
 			// Yaw is positive for clockwise rotation about the NED frame +Z axis
 			// If magnetometer isn't used, yaw is initialized to 0 on power up.
 			dbg_printf(("\nY = %d P = %d R = %d\n", (int)yaw, (int)pitch, (int)roll));
-			dbg_printf(("Alt %.0f [cm], BaroAlt = %.0f [cm], Accel: %.0f\n", kfAltitudeCm, Baro.altitudeCm, ringbuf_average_newest_samples(10)));
+			dbg_printf(("Alt %.0f [cm], BaroAlt = %.0f [cm], Accel: %.0f\n", kfAltitudeCm, Baro.altitudeCm, ringBuffer.averageNewestSamples(10)));
 			dbg_printf(("kv = %d [cm/s], timeout_counter = %d\n", ClimbrateCps, pwrOffTimeoutSecs));
 			dbg_printf(("ax = %.1f ay = %.1f az = %.1f\n", accelmG[0], accelmG[1], accelmG[2]));
 			dbg_printf(("gx = %.1f gy = %.1f gz = %.1f\n", gyroDps[0], gyroDps[1], gyroDps[2]));

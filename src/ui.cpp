@@ -11,32 +11,33 @@ Ticker     Tickr;
 
 extern MPU9250 Imu;
 
-volatile uint32_t BtnPCCAState;
-volatile bool BtnPCCAPressed = false;
-volatile bool BtnPCCALongPress = false;
+static volatile uint32_t BtnPCCAState;
+static volatile bool BtnPCCAPressed = false;
+static volatile bool BtnPCCALongPress = false;
 	
-void IRAM_ATTR btn_debounce() {
-	BtnPCCAState = ((BtnPCCAState<<1) | ((uint32_t)BTN_PCCA()) );
+bool ui_button_pressed(void) {
+	bool retval = BtnPCCAPressed;
+	BtnPCCAPressed = false;	
+
+	return retval;
+}
+
+static void IRAM_ATTR btn_debounce() {
+	BtnPCCAState = ((BtnPCCAState<<1) | ((uint32_t)(digitalRead(pinPCCA) == HIGH ? 1 : 0)) );
 	if ((BtnPCCAState | 0xFFFFFFF0) == 0xFFFFFFF8) {
 		BtnPCCAPressed = true;
-		}    
+	}    
 	if (BtnPCCAState == 0) {
 		BtnPCCALongPress = true;
-		}
 	}
-
+}
 	
-void ui_btn_init() {
+void ui_button_init(void) {
+	pinMode(pinPCCA, INPUT_PULLUP); //  Program/Configure/Calibrate/Audio Mute Button
  	Tickr.attach_ms(25, btn_debounce);
-	ui_btn_clear();
-	}
-		
-
-void ui_btn_clear() {
 	BtnPCCAPressed  = false;
 	BtnPCCALongPress = false;
-	}
-
+}
 	
 // !! Accelerometer calibration is REQUIRED for normal vario operation. !!
 // If flash was completely erased, or Imu calibration data in flash was never initialized, or 
@@ -147,7 +148,7 @@ void ui_calibrate_accel_gyro_mag() {
 	for (int inx = 0; inx < 5; inx++) {
 		delay(500); 
 		dbg_println((5-inx));
-		if (digitalRead(pinPCCA) == 0) {
+		if( ui_button_pressed() ) {
 			bCalibrateAccel = true;
 			bCalibrateMag = true;
 			dbg_println(("PCCA button pressed"));
@@ -208,7 +209,7 @@ void ui_calibrate_accel_gyro() {
 		delay(500); 
 		dbg_println((5-inx));
 		audio_generate_tone(CALIBRATING_TONE_HZ, 50); 
-		if (digitalRead(pinPCCA) == 0) {
+		if( ui_button_pressed() ) {
 			bCalibrateAccel = true;
 			dbg_println(("PCCA button pressed"));
 			break;
