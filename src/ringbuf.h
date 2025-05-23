@@ -3,14 +3,17 @@
 
 #define RINGBUF_SIZE    20
 
-typedef struct RINGBUF_ {
-   int head;
-   float buffer[RINGBUF_SIZE];
-} RINGBUF;
+class RingBuffer {
+private:
+    int head;
+    float buffer[RINGBUF_SIZE];
+    float calculateAverage(int startIdx, int numSamples) const;
 
-void ringbuf_init();
-void ringbuf_add_sample(float sample);
-float ringbuf_average_oldest_samples(int numSamples);
-float ringbuf_average_newest_samples(int numSamples);
+public:
+    RingBuffer();  // Constructor
+    void addSample(float sample);
+    float averageOldestSamples(int numSamples) const;
+    float averageNewestSamples(int numSamples) const;
+};
 
 #endif

@@ -1,31 +1,13 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-
-#ifdef HW_REV_A
-#define pinPCCA		9	// program/configure/calibrate/audio button
-#define pinAudio	4	// pwm beeper audio output
-#define pinAudioEn	3	// 74HC240 output enables, active low
-
-#define pinPwrSens	1	// detect power on/off button press
-#define pinPwrCtrl	2	// power on/off
-
-#define pinCSB		5	// CSB (ms5611)
-#define pinMISO		7	// SDO ms5611 & AD0 mpu9250
-#define pinNCS		10 	// NCS (mpu9250)
-#define pinMOSI		18 	// SDA
-#define pinSCK		19	// SCL
-#define pinDRDYInt	6  	// INT
-#define pinLED		8	// power-on and bluetooth active indication
-#endif
-
-#ifdef HW_REV_B
-#define pinPCCA		9	// program/configure/calibrate/audio button
-#define pinAudio	7	// pwm beeper audio output
-#define pinAudioEn	6	// 74HC240 output enables, active low
+#if ARDUINO_USB_MODE == 0
+#define pinPCCA		27	// program/configure/calibrate/audio button
+#define pinAudio	14	// pwm beeper audio output
+#define pinAudioEn	15	// 74HC240 output enables, active low
 
 #define pinPwrSens	21	// detect power on/off button press
-#define pinPwrCtrl	10	// power on/off
+#define pinPwrCtrl	16	// power on/off
 
 #define pinCSB		20	// CSB (ms5611)
 #define pinMISO		1	// SDO ms5611 & AD0 mpu9250
@@ -33,13 +15,31 @@
 #define pinMOSI		4 	// SDA
 #define pinSCK		5	// SCL
 #define pinDRDYInt	2  	// INT
-#define pinLED		8	// power-on and bluetooth active indication
+#define pinLED		0	// power-on and bluetooth active indication
+#define pinGpsRx 	17
+#define pinAuxTx	18
+#define portAux		2
 
-#define Serial USBSerial
+#else
+#define pinPCCA		6	// program/configure/calibrate/audio button
+#define pinAudio	7	// pwm beeper audio output
+#define pinAudioEn	0	// 74HC240 output enables, active low
+
+#define pinPwrSens	12	// detect power on/off button press
+#define pinPwrCtrl	13	// power on/off
+
+#define pinCSB		4	// CSB (ms5611)
+#define pinMISO		9	// SDO ms5611 & AD0 mpu9250
+#define pinNCS		3 	// NCS (mpu9250)
+#define pinMOSI		10 	// SDA
+#define pinSCK		8	// SCL
+#define pinDRDYInt	5  	// INT
+#define pinLED		1	// power-on and bluetooth active indication
+#define pinGpsRx 	20
+#define pinAuxTx	21
+#define portAux		0
+
 #endif
-
-
-#define BTN_PCCA()  (digitalRead(pinPCCA) == HIGH ? 1 : 0)
 
 #define LED_ON() 	{digitalWrite(pinLED, 0); LEDState = 1;}
 #define LED_OFF() 	{digitalWrite(pinLED, 1); LEDState = 0;}
@@ -103,7 +103,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // COMPILED CONFIGURATION PARAMETERS ( cannot be changed with web configuration )
 
-//#define USE_9DOF_AHRS
+// #define USE_9DOF_AHRS
 
 #define PWR_CTRL_TASK_PRIORITY	2
 #define BLE_TASK_PRIORITY		3
@@ -147,6 +147,9 @@
 // For revB hardware, after flashing the code and validating the calibration parameters look reasonable,
 // ensure this is commented out
 #define TOP_DEBUG
+#if ARDUINO_USB_MODE==1
+#define Serial USBSerial
+#endif
 #ifdef TOP_DEBUG
 	#define dbg_println(x) {Serial.println x;}
 	#define dbg_printf(x)  {Serial.printf x;}
@@ -167,8 +170,8 @@
 
 // !! ensure these #defines are commented out after debugging, as the 
 // enclosed debug prints are in the critical run-time loop.
-//#define IMU_DEBUG
-//#define PERF_DEBUG
-//#define BLE_DEBUG
+// #define IMU_DEBUG
+// #define BLE_DEBUG
+#define ALTI_DEBUG
 
 #endif

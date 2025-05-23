@@ -4,7 +4,7 @@
 #include <LittleFS.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include <AsyncElegantOTA.h>
+// #include <AsyncElegantOTA.h>
 #include <ESPmDNS.h>
 #include <esp_wifi.h>
 #include "config.h"
@@ -16,7 +16,7 @@ static const char* TAG = "wificfg";
 
 extern const char* FwRevision;
 
-const char* szAPSSID = "Vario-AP";
+const char* szAPSSID = "Bavario-AP";
 const char* szAPPassword = ""; // no password for stand-alone access point
 
 AsyncWebServer* pServer = NULL;
@@ -46,7 +46,7 @@ static String server_string_processor(const String& var){
         }
     else
     if(var == "BATTERY_VOLTAGE"){
-        return String(BatteryVoltage, 2);
+        return String(adc_get_battery_voltage(), 2);
         }
 	else
 	if(var == "SSID"){
@@ -185,7 +185,7 @@ void wificfg_ap_server_init() {
 	else {
 		wifi_start_as_station();
 		}	
-	if (!MDNS.begin("vario")) { // Use http://vario.local for web server page
+	if (!MDNS.begin("bavario")) { // Use http://bavario.local for web server page
 		dbg_println(("Error starting mDNS service"));
 	    }
     pServer = new AsyncWebServer(80);
@@ -201,7 +201,7 @@ void wificfg_ap_server_init() {
     pServer->on("/style.css", HTTP_GET, css_handler);	
 
     // add support for OTA firmware update
-    AsyncElegantOTA.begin(pServer);
+    // AsyncElegantOTA.begin(pServer);
     pServer->begin();
 	MDNS.addService("http", "tcp", 80);
     }

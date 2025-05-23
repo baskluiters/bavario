@@ -11,32 +11,33 @@ Ticker     Tickr;
 
 extern MPU9250 Imu;
 
-volatile uint32_t BtnPCCAState;
-volatile bool BtnPCCAPressed = false;
-volatile bool BtnPCCALongPress = false;
+static volatile uint32_t BtnPCCAState;
+static volatile bool BtnPCCAPressed = false;
+static volatile bool BtnPCCALongPress = false;
 	
-void IRAM_ATTR btn_debounce() {
-	BtnPCCAState = ((BtnPCCAState<<1) | ((uint32_t)BTN_PCCA()) );
+bool ui_button_pressed(void) {
+	bool retval = BtnPCCAPressed;
+	BtnPCCAPressed = false;	
+
+	return retval;
+}
+
+static void IRAM_ATTR btn_debounce() {
+	BtnPCCAState = ((BtnPCCAState<<1) | ((uint32_t)(digitalRead(pinPCCA) == HIGH ? 1 : 0)) );
 	if ((BtnPCCAState | 0xFFFFFFF0) == 0xFFFFFFF8) {
 		BtnPCCAPressed = true;
-		}    
+	}    
 	if (BtnPCCAState == 0) {
 		BtnPCCALongPress = true;
-		}
 	}
-
+}
 	
-void ui_btn_init() {
+void ui_button_init(void) {
+	pinMode(pinPCCA, INPUT_PULLUP); //  Program/Configure/Calibrate/Audio Mute Button
  	Tickr.attach_ms(25, btn_debounce);
-	ui_btn_clear();
-	}
-		
-
-void ui_btn_clear() {
 	BtnPCCAPressed  = false;
 	BtnPCCALongPress = false;
-	}
-
+}
 	
 // !! Accelerometer calibration is REQUIRED for normal vario operation. !!
 // If flash was completely erased, or Imu calibration data in flash was never initialized, or 
@@ -75,7 +76,6 @@ void ui_indicate_fault_MPU9250() {
 
 void ui_indicate_battery_voltage(float batV) {
 	int numBeeps;
-	dbg_printf(("\r\nBattery voltage = %.2fV\r\n", batV ));
 
 	if (batV >= 4.0f) numBeeps = 5;
 	else
@@ -85,11 +85,9 @@ void ui_indicate_battery_voltage(float batV) {
 	else
 	if (batV >= 3.6f) numBeeps = 2;
 	else numBeeps = 1;
-	while (numBeeps--) {
-		audio_generate_tone(BATTERY_TONE_HZ, 300);
-		delay(300);
-		}
-	}
+	dbg_printf(("\r\nBattery voltage = %.2fV (beeps = %d)\r\n", batV, numBeeps));
+	audio_generate_tone(BATTERY_TONE_HZ, 100, 100, numBeeps);
+}
    
 
 void ui_calibrate_accel(CALIB_PARAMS_t &calib) {    
@@ -97,10 +95,10 @@ void ui_calibrate_accel(CALIB_PARAMS_t &calib) {
     audio_generate_tone(CALIBRATING_TONE_HZ, 3000);
     dbg_println(("-- Accelerometer calibration --"));
     dbg_println(("Place vario on a level surface with accelerometer z axis vertical and leave it undisturbed"));
-    dbg_println(("You have 10 seconds, counted down with rapid beeps from 50 to 0"));
-    for (int inx = 0; inx < 50; inx++) {
+    dbg_println(("You have 4 seconds, counted down with rapid beeps from 20 to 0"));
+    for (int inx = 0; inx < 20; inx++) {
 		delay(200); 
-		dbg_println((50-inx));
+		dbg_println((20-inx));
 		audio_generate_tone(CALIBRATING_TONE_HZ, 50);
 		}
     dbg_println(("\r\nCalibrating accelerometer"));
@@ -150,7 +148,7 @@ void ui_calibrate_accel_gyro_mag() {
 	for (int inx = 0; inx < 5; inx++) {
 		delay(500); 
 		dbg_println((5-inx));
-		if (digitalRead(pinPCCA) == 0) {
+		if( ui_button_pressed() ) {
 			bCalibrateAccel = true;
 			bCalibrateMag = true;
 			dbg_println(("PCCA button pressed"));
@@ -207,11 +205,11 @@ void ui_calibrate_accel_gyro() {
 		}	
 	dbg_println(("Counting down to gyro calibration"));
 	dbg_println(("Press the PCCA button to enforce accelerometer calibration first"));
-	for (int inx = 0; inx < 10; inx++) {
+	for (int inx = 0; inx < 5; inx++) {
 		delay(500); 
-		dbg_println((10-inx));
+		dbg_println((5-inx));
 		audio_generate_tone(CALIBRATING_TONE_HZ, 50); 
-		if (digitalRead(pinPCCA) == 0) {
+		if( ui_button_pressed() ) {
 			bCalibrateAccel = true;
 			dbg_println(("PCCA button pressed"));
 			break;
