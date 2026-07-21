@@ -80,11 +80,16 @@ void ble_uart_transmit(const char *msg) {
 	}
 }
 
-void ble_uart_transmit_LK8EX1(int32_t altm, int32_t cps, float batPercentage) {
+void ble_uart_transmit_LK8EX1_LXWP0(int32_t altm, int32_t cps, float batPercentage, unsigned int course) {
 	char szmsg[40];
 	sprintf(szmsg, "$LK8EX1,999999,%d,%d,99,%.0f*", altm, cps, 1000.0f + batPercentage);
 	uint8_t cksum = ble_uart_nmea_checksum(szmsg);
 	char szcksum[5];
+	sprintf(szcksum,"%02X\r\n", cksum);
+	strcat(szmsg, szcksum);
+	ble_uart_transmit(szmsg);
+	sprintf(szmsg, "$LXWP0,N,,%d.0,%.2f,,,,,,%u,,*", altm, (double)cps/100.0f, course);
+	cksum = ble_uart_nmea_checksum(szmsg);
 	sprintf(szcksum,"%02X\r\n", cksum);
 	strcat(szmsg, szcksum);
 	ble_uart_transmit(szmsg);
