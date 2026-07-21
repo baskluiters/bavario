@@ -1,7 +1,7 @@
 #include <Arduino.h>
-#include <Wire.h>
 #include <FS.h>
 #include <LittleFS.h>
+#include <TinyGPS++.h>
 #include "config.h"
 #include "spi.h"
 #include "util.h"
@@ -165,6 +165,7 @@ static void power_off() {
 
 static void ble_task(void* pvParameter) {
 #ifdef GPS_CONNECTED
+	TinyGPSPlus gps;
 	char gpsSentence[160];
 	char *pGps = gpsSentence;
 	HardwareSerial gpsSerial(1);
@@ -178,7 +179,9 @@ static void ble_task(void* pvParameter) {
 	for(;;) {
 #ifdef GPS_CONNECTED
 		while( gpsSerial.available() ) {
-			*pGps++ = gpsSerial.read();
+			char c = gpsSerial.read();
+			gps.encode(c);
+			*pGps++ = c;
 			if( *(pGps-1) == '\n' && *(pGps-2) == '\r' ) { // Sentence ends with "\r\n"
 				*pGps = '\0';
 				if( strstr(gpsSentence, "$GPRMC") || strstr(gpsSentence, "$GPGGA") )
@@ -195,13 +198,27 @@ static void ble_task(void* pvParameter) {
 			LEDState = !LEDState; // Toggle every second
 			digitalWrite(pinLED, LEDState);
 			adc_update_battery_voltage();
+#if defined GPS_DEBUG && defined GPS_CONNECTED
+			dbg_printf(("alt:%d, climbrate:%d, time: %d, date:%d, sats:%d, u:%d, lat:%.6f, lon:%.6f, crs:%.1f\n", 
+				AltitudeM,
+				ClimbrateCps,
+				gps.time.value(), 
+				gps.date.value(), 
+				gps.satellites.value(),
+				gps.location.isUpdated(),
+				gps.location.lat(),
+				gps.location.lng(),
+				gps.course.deg()
+			));
+#endif
 		}
 #ifndef SPI_SENSORS
 		// Simulate some values for testing
 		ClimbrateCps = 500 * sin((3.1415f * 2.0f * (millis() % 10000))/10000);
 		AltitudeM = (millis()/1000)%3000;
 #endif
-		ble_uart_transmit_LK8EX1(AltitudeM, ClimbrateCps, adc_get_battery_percentage());				
+		ble_uart_transmit_LK8EX1_LXWP0(AltitudeM, ClimbrateCps, 
+			adc_get_battery_percentage(), (unsigned int)gps.course.deg());
 		vTaskDelay(100/portTICK_PERIOD_MS);
 	}
 }
@@ -319,7 +336,7 @@ static void vario_task(void * pvParameter) {
 		}
 
 	vaudio_config();  
-	audio_toggle_mute(); // Unmutes audio to start with
+	// audio_toggle_mute(); // Unmutes audio to start with
 	// for(int tone = 200; tone < 10000; tone += 50) {
 	// 	audio_set_frequency(tone);
 	// 	dbg_printf(("Tone: %d\n", tone));
