@@ -218,7 +218,7 @@ static void ble_task(void* pvParameter) {
 		AltitudeM = (millis()/1000)%3000;
 #endif
 		ble_uart_transmit_LK8EX1_LXWP0(AltitudeM, ClimbrateCps, 
-			adc_get_battery_percentage(), (unsigned int)gps.course.deg());
+			adc_get_battery_percentage(), gps.course.deg());
 		vTaskDelay(100/portTICK_PERIOD_MS);
 	}
 }
