@@ -172,6 +172,8 @@
 // enclosed debug prints are in the critical run-time loop.
 // #define IMU_DEBUG
 // #define BLE_DEBUG
-#define ALTI_DEBUG
+// #define ALTI_DEBUG
+// #define BLE_DEBUG
+#define GPS_DEBUG
 
 #endif
